@@ -1,13 +1,11 @@
-blib/lib/Net/Mollom.pm
-blib/lib/Net/Mollom/ContentCheck.pm
-blib/libdoc/Net::Mollom.3
-blib/libdoc/Net::Mollom::ContentCheck.3
 Build.PL
 Changes
 lib/Net/Mollom.pm
 lib/Net/Mollom/ContentCheck.pm
+Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
+META.yml
 README
 t/01-constructor.t
 t/02-server_list.t
@@ -19,5 +17,3 @@ t/07-get_audio_captcha.t
 t/08-get_statistics.t
 xt/pod-coverage.t
 xt/pod.t
-Makefile.PL
-META.yml

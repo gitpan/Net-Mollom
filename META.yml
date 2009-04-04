@@ -1,6 +1,6 @@
 ---
 name: Net-Mollom
-version: 0.03
+version: 0.04
 author:
   - 'Michael Peters <mpeters@plusthree.com>'
 abstract: interface with Mollom web API
@@ -8,17 +8,17 @@ license: perl
 resources:
   license: ~
 build_requires:
+  Any::Moose: 0
   DateTime: 0
   Digest::HMAC_SHA1: 0
   MIME::Base64: 0
   Params::Validate: 0
-  Squirrel: 0
   Test::More: 0
   XML::RPC: 0.9
 provides:
   Net::Mollom:
     file: lib/Net/Mollom.pm
-    version: 0.03
+    version: 0.04
   Net::Mollom::ContentCheck:
     file: lib/Net/Mollom/ContentCheck.pm
 generated_by: Module::Build version 0.32

@@ -1,5 +1,5 @@
 package Net::Mollom;
-use Squirrel;
+use Any::Moose;
 use XML::RPC;
 use DateTime;
 use Params::Validate qw(validate SCALAR);
@@ -22,7 +22,7 @@ our @SERVERS = (
 );
 our $SERVERS_INITIALIZED = 0;
 our $API_VERSION         = '1.0';
-our $VERSION             = '0.03';
+our $VERSION             = '0.04';
 
 my $ERROR_PARSE           = 1000;
 my $ERROR_REFRESH_SERVERS = 1100;

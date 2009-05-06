@@ -1,11 +1,14 @@
 package Net::Mollom::ContentCheck;
-use Squirrel;
+use Any::Moose;
 
 has is_spam => (is => 'rw', isa => 'Bool');
 has is_ham  => (is => 'rw', isa => 'Bool');
 has is_unsure  => (is => 'rw', isa => 'Bool');
 has quality => (is => 'rw', isa => 'Num');
 has session_id => (is => 'rw', isa => 'Str');
+
+no Any::Moose;
+__PACKAGE__->meta->make_immutable;
 
 =head1 NAME
 

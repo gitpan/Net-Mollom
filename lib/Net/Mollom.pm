@@ -2,12 +2,19 @@ package Net::Mollom;
 use Any::Moose;
 use XML::RPC;
 use DateTime;
-use Params::Validate qw(validate SCALAR);
+use Params::Validate qw(validate SCALAR UNDEF);
 use Digest::HMAC_SHA1 qw(hmac_sha1);
 use MIME::Base64 qw(encode_base64);
 use DateTime;
 use Carp qw(carp croak);
 use Net::Mollom::ContentCheck;
+use Exception::Class (
+    'Net::Mollom::Exception',
+    'Net::Mollom::ServerListException'    => {isa => 'Net::Mollom::Exception'},
+    'Net::Mollom::CommunicationException' => {isa => 'Net::Mollom::Exception'},
+    'Net::Mollom::APIException' =>
+      {isa => 'Net::Mollom::Exception', fields => [qw(mollom_code mollom_desc)]},
+);
 
 has current_server => (is => 'rw', isa => 'Num',  default  => 0);
 has public_key     => (is => 'rw', isa => 'Str',  required => 1);
@@ -30,7 +37,7 @@ no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 our $API_VERSION         = '1.0';
-our $VERSION             = '0.06';
+our $VERSION             = '0.07';
 my $ERROR_PARSE           = 1000;
 my $ERROR_REFRESH_SERVERS = 1100;
 my $ERROR_NEXT_SERVER     = 1200;
@@ -106,7 +113,7 @@ situations:
 
 =back
 
-=head1 METHODS
+=head1 OBJECT METHODS
 
 =head2 verify_key
 
@@ -157,11 +164,11 @@ optional named arguments:
 Returns a L<Net::Mollom::ContentCheck> object.
 
     my $check = $mollom->check_content(
-        post_title => $title,
-        post_body => $body,
+        post_title  => $title,
+        post_body   => $body,
         author_name => 'Michael Peters',
         author_mail => 'mpeters@p3.com',
-        author_id => 12345,
+        author_id   => 12345,
     );
 
 =cut
@@ -171,19 +178,21 @@ sub check_content {
     my %args = validate(
         @_,
         {
-            post_title    => {type => SCALAR, optional => 1},
-            post_body     => {type => SCALAR, optional => 1},
-            author_name   => {type => SCALAR, optional => 1},
-            author_url    => {type => SCALAR, optional => 1},
-            author_mail   => {type => SCALAR, optional => 1},
-            author_openid => {type => SCALAR, optional => 1},
-            author_ip     => {type => SCALAR, optional => 1},
-            author_id     => {type => SCALAR, optional => 1},
+            post_title    => {type => SCALAR | UNDEF, optional => 1},
+            post_body     => {type => SCALAR | UNDEF, optional => 1},
+            author_name   => {type => SCALAR | UNDEF, optional => 1},
+            author_url    => {type => SCALAR | UNDEF, optional => 1},
+            author_mail   => {type => SCALAR | UNDEF, optional => 1},
+            author_openid => {type => SCALAR | UNDEF, optional => 1},
+            author_ip     => {type => SCALAR | UNDEF, optional => 1},
+            author_id     => {type => SCALAR | UNDEF, optional => 1},
+            session_id    => {type => SCALAR | UNDEF, optional => 1},
         }
     );
 
     # we need at least 1 arg
-    croak "You must pass at least 1 argument to check_content!" unless %args;
+    croak "You must pass at least 1 argument to check_content!"
+      unless %args && map { defined $args{$_} } keys %args;
 
     # get the server list from Mollom if we don't already have one
     $self->server_list() unless $self->servers_init;
@@ -200,6 +209,18 @@ sub check_content {
         session_id => $results->{session_id},
     );
 }
+
+=head2 session_id
+
+This is the Mollom assigned session id. If you've made a call to
+C<check_content()> it will be set by Mollom and you must pass it later
+to any calls you make to C<send_feedback()>, C<get_image_captcha()>,
+C<get_audio_captcha()> or C<check_captcha()>. If you use the same Mollom
+object that made the C<check_content()> call then you don't need to do
+anything since it will remember that for you. But in most web applications
+the next request by a user will not be served by the next process or
+even the next server, so there's no guarantee. You need to store and
+remember this mollom session_id on your own.
 
 =head2 send_feedback
 
@@ -327,6 +348,10 @@ sent as part of this session. Takes the following named arguments:
 
 The user's answer to the CAPTCHA
 
+=item * session_id
+
+The id of the Mollom session.
+
 =back
 
 Returns true if correct, false otherwise.
@@ -420,7 +445,9 @@ sub _make_api_call {
     my @servers = @{$self->servers};
 
     if (!$self->xml_rpc) {
-        $self->xml_rpc(XML::RPC->new($servers[$self->current_server] . '/' . $API_VERSION));
+        my $xml_rpc = eval { XML::RPC->new($servers[$self->current_server] . '/' . $API_VERSION) };
+        Net::Mollom::CommunicationException->throw(error => $@) if $@;
+        $self->xml_rpc($xml_rpc);
     }
 
     $args->{public_key} ||= $self->public_key;
@@ -437,14 +464,15 @@ sub _make_api_call {
         $args->{session_id} = $self->session_id;
     }
 
-    my $results = $self->xml_rpc->call("mollom.$function", $args);
+    my $results = eval { $self->xml_rpc->call("mollom.$function", $args) };
+    Net::Mollom::CommunicationException->throw(error => $@) if $@;
 
     # check if there are any errors and handle them accordingly
     if (ref $results && (ref $results eq 'HASH') && $results->{faultCode}) {
         my $fault_code = $results->{faultCode};
         if ($fault_code == $ERROR_REFRESH_SERVERS) {
             if ($function eq 'getServerList') {
-                croak("Could not get list of servers from Mollom!");
+                Net::Mollom::ServerListException->throw(error => "Could not get list of servers from Mollom!");
             } else {
                 $self->servers_init(0);
                 $self->server_list;
@@ -467,18 +495,43 @@ sub _make_api_call {
                     $self->server_list;
                     return $self->_make_api_call($function, $args);
                 } else {
-                    croak("No more servers to try!");
+                    Net::Mollom::ServerListException->throw(error => "No more Mollom servers to try!");
                 }
             }
         } else {
-            croak(
-                "Error communicating with Mollom [$results->{faultCode}]: $results->{faultString}");
+            Net::Mollom::APIException->throw(
+                error => "Error communicating with Mollom [$results->{faultCode}]: $results->{faultString}",
+                mollom_code => $results->{faultCode},
+                mollom_desc => $results->{faultString},
+            );
         }
     } else {
         $self->attempts(0);
         return $results;
     }
 }
+
+=head1 EXCEPTIONS
+
+Any object method can throw a L<Net::Mollom::Exception> object (using L<Exception::Class> underneath).
+
+The following exceptions are possible:
+
+=head2 Net::Mollom::ServerListException
+
+This happens when we've exhausted the list available servers and we've reached
+our C<attempt_limit> for getting more.
+
+=head2 Net::Mollom::APIException
+
+There was some kind of problem communicating with the Mollom service.
+This is not a network error, but somehow we're not talking to it in a language
+it can understand (maybe an API change or bug in Net::Mollom, etc).
+
+=head2 Net::Mollom::CommunicationException
+
+There was some kind of problem communicating with the Mollom service.
+This could be a network error or an L<XML::RPC> error.
 
 =head1 AUTHOR
 

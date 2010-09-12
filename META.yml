@@ -1,15 +1,24 @@
 ---
-name: Net-Mollom
-version: 0.07
+abstract: 'interface with Mollom web API'
 author:
   - 'Michael Peters <mpeters@plusthree.com>'
-abstract: interface with Mollom web API
-license: perl
-resources:
-  license: http://dev.perl.org/licenses/
 build_requires:
   Exception::Class::TryCatch: 0
   Test::More: 0
+configure_requires:
+  Module::Build: 0.36
+generated_by: 'Module::Build version 0.3607'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Net-Mollom
+provides:
+  Net::Mollom:
+    file: lib/Net/Mollom.pm
+    version: 0.08
+  Net::Mollom::ContentCheck:
+    file: lib/Net/Mollom/ContentCheck.pm
 requires:
   Any::Moose: 0
   DateTime: 0
@@ -18,15 +27,6 @@ requires:
   MIME::Base64: 0
   Params::Validate: 0
   XML::RPC: 0.9
-configure_requires:
-  Module::Build: 0.340201
-provides:
-  Net::Mollom:
-    file: lib/Net/Mollom.pm
-    version: 0.07
-  Net::Mollom::ContentCheck:
-    file: lib/Net/Mollom/ContentCheck.pm
-generated_by: Module::Build version 0.340201
-meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
+resources:
+  license: http://dev.perl.org/licenses/
+version: 0.08

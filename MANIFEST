@@ -4,7 +4,6 @@ lib/Net/Mollom.pm
 lib/Net/Mollom/ContentCheck.pm
 MANIFEST			This list of files
 MANIFEST.SKIP
-META.yml
 README
 t/01-constructor.t
 t/02-server_list.t
@@ -17,3 +16,5 @@ t/08-get_statistics.t
 t/09-check_captcha.t
 xt/pod-coverage.t
 xt/pod.t
+META.yml
+META.json

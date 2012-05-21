@@ -37,7 +37,7 @@ no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
 our $API_VERSION         = '1.0';
-our $VERSION             = '0.08';
+our $VERSION             = '0.09';
 my $ERROR_PARSE           = 1000;
 my $ERROR_REFRESH_SERVERS = 1100;
 my $ERROR_NEXT_SERVER     = 1200;
@@ -250,7 +250,7 @@ sub send_feedback {
         @_,
         {
             feedback   => { type => SCALAR, regex => qr/^(spam|profanity|low-quality|unwanted)$/ },
-            session_id => { type => SCALAR, optional => 1 },
+            session_id => { type => SCALAR | UNDEF, optional => 1 },
         }
     );
     $args{session_id} ||= $self->session_id;
@@ -286,8 +286,8 @@ sub get_image_captcha {
     my %args = validate(
         @_,
         {
-            author_ip  => { type => SCALAR, optional => 1 },
-            session_id => { type => SCALAR, optional => 1 },
+            author_ip  => { type => SCALAR | UNDEF, optional => 1 },
+            session_id => { type => SCALAR | UNDEF, optional => 1 },
         }
     );
     $args{session_id} ||= $self->session_id;
@@ -325,8 +325,8 @@ sub get_audio_captcha {
     my %args = validate(
         @_,
         {
-            author_ip  => { type => SCALAR, optional => 1 },
-            session_id => { type => SCALAR, optional => 1 },
+            author_ip  => { type => SCALAR | UNDEF, optional => 1 },
+            session_id => { type => SCALAR | UNDEF, optional => 1 },
         }
     );
     $args{session_id} ||= $self->session_id;
@@ -365,7 +365,7 @@ sub check_captcha {
         @_,
         {
             solution   => { type => SCALAR },
-            session_id => { type => SCALAR, optional => 1 },
+            session_id => { type => SCALAR | UNDEF, optional => 1 },
         }
     );
     $args{session_id} ||= $self->session_id;
